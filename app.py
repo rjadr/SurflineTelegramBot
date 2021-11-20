@@ -2,17 +2,13 @@ from telethon import TelegramClient, events, Button, tl
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
 import config
-import logging
+from loguru import logger
 import requests
 import re
 import pandas as pd
 import math
 
-logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
-                    level=logging.WARNING) #logging.INFO
-
 bot = TelegramClient('mysurfbot', config.API_ID, config.API_HASH).start(bot_token=config.BOT_TOKEN)
-bot.parse_mode = 'html'
 
 # Function to validate the time in 24-hour format
 def isValidTime(time):  
@@ -39,7 +35,7 @@ async def send_update(sender_id, spot_id, spot_name, surf_height, ndays, cron_ti
         await bot.send_message(sender_id, "🏄 Surf's up!!! 🏄")
         await bot.send_message(sender_id, filtered_df[['time', 'AM height', 'PM height']].to_markdown(), parse_mode='md')
         await bot.send_message(sender_id, f"Check the full forecast: https://www.surfline.com/surf-report/{spot_name}/{spot_id}") 
-        logging.info(f'Sent update to {sender_id} for {spot_name}.')
+        logger.info(f'Sent update to {sender_id} for {spot_name}.')
         
 @bot.on(events.NewMessage(pattern='/delete'))
 async def delete(event):
@@ -48,7 +44,7 @@ async def delete(event):
     try:
         scheduler.remove_job(sender_id)
         await event.respond('Subscription deleted! You can set a new one with /start')
-        logging.info(f'Subscription deleted for {sender_id}.')
+        logger.info(f'Subscription deleted for {sender_id}.')
     except:
         await event.respond('No subscription found! You can set a new one with /start')
     raise events.StopPropagation
@@ -134,6 +130,7 @@ async def register_spot(event):
                             cron_time = (await conv.get_response()).text
 
                         scheduler.add_job(send_update, 'cron', hour=int(cron_time.split(':')[0]), minute=int(cron_time.split(':')[1]), id=f'{chat_id}', args=[sender_id, spot['_id'], spot['_source']['name'], float(height), int(ndays), cron_time], replace_existing=True)
+                        logger.info(f'Spot {spot["_source"]["name"]} registered for {sender_id}.')
                         await conv.send_message(f"Thanks! You will receive a daily message at {cron_time} if the maximum surf height at {spot['_source']['name']} hits {height} meters the coming {ndays} days.\n\nYou can always delete your registration with /delete or check your settings with /settings. Note that you can only register for one spot, new registrations will overwrite existing ones.")
                         
                         break
@@ -158,16 +155,17 @@ async def cancel_handler(event):
     await event.respond(f'Registration cancelled.', buttons=None)
 
 try:
-    logging.info('Starting bot...')
-    logging.info('(Press Ctrl+C to stop the bot)')
-    logging.info('Starting scheduler...')
+    logger.info('Starting bot...')
+    logger.info('(Press Ctrl+C to stop the bot)')
+    logger.info('Starting scheduler...')
     scheduler = AsyncIOScheduler(job_defaults={'misfire_grace_time': 15*60})
     scheduler.add_jobstore('sqlalchemy', url='sqlite:///' + config.SCHEDULER_DB)
     scheduler.start()
-    
+
+    bot.parse_mode = 'html'    
     """Start the bot."""
     bot.run_until_disconnected()
 finally:
-    logging.info('Closing bot...')
+    logger.info('Closing bot...')
     scheduler.shutdown(wait=False)
     bot.disconnect()
