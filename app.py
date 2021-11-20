@@ -6,6 +6,7 @@ import logging
 import requests
 import re
 import pandas as pd
+import math
 
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
                     level=logging.WARNING) #logging.INFO
