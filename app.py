@@ -37,7 +37,6 @@ async def send_update(sender_id, spot_id, spot_name, surf_height, ndays, cron_ti
 
         await bot.send_message(sender_id, "🏄 Surf's up!!! 🏄")
         await bot.send_message(sender_id, filtered_df[['time', 'AM height', 'PM height']].to_markdown(), parse_mode='md')
-        filtered_df[['time', 'AM height', 'PM height']].to_markdown()
         await bot.send_message(sender_id, f"Check the full forecast: https://www.surfline.com/surf-report/{spot_name}/{spot_id}") 
         logging.info(f'Sent update to {sender_id} for {spot_name}.')
         
