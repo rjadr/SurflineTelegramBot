@@ -117,7 +117,7 @@ async def register_spot(event):
                     event = done.pop().result()
             
             spot = [i for i in results if i['_source']['name'] == selected.split('_')[1]][0]
-            await conv.send_message('Explore your spot')#, alert=True)
+            await conv.send_message('Explore your spot')
             await conv.send_message(spot['_source']['href'])
             
             await conv.send_message('Set minimum surf height in meters, eg. 0.9')
@@ -158,7 +158,7 @@ async def cancel_handler(event):
 
 try:
     logging.info('Starting bot...')
-    print('(Press Ctrl+C to stop this)')
+    logging.info('(Press Ctrl+C to stop the bot)')
     logging.info('Starting scheduler...')
     scheduler = AsyncIOScheduler(job_defaults={'misfire_grace_time': 15*60})
     scheduler.add_jobstore('sqlalchemy', url='sqlite:///' + config.SCHEDULER_DB)
