@@ -108,6 +108,34 @@ async def register_spot(event):
                         break
                     else:
                         await event.edit('Selected spot: ' + selected.split('_')[1])
+                        spot = [i for i in results if i['_source']['name'] == selected.split('_')[1]][0]
+                        await conv.send_message('Explore your spot')
+                        await conv.send_message(spot['_source']['href'])
+
+                        await conv.send_message('Set minimum surf height in meters, eg. 0.9')
+                        height = (await conv.get_response()).text
+                        while not height.replace('.','',1).isdigit():
+                            await conv.send_message("Not a number! Try again or /cancel")
+                            height = (await conv.get_response()).text
+
+                        await conv.send_message('For how many days would you like to retrieve the forecast (1-5)?')
+                        ndays = (await conv.get_response()).text
+                        while not (ndays.isnumeric()):
+                            await conv.send_message("Please submit a number from 1 to 5! Try again or /cancel")
+                            ndays = (await conv.get_response()).text
+                        while not (int(ndays) in range(1,6)):
+                            await conv.send_message("Please submit a number from 1 to 5! Try again or /cancel")
+                            ndays = (await conv.get_response()).text
+
+                        await conv.send_message('Final question: at what time do you want to receive your daily update (24-hour notation, eg. 08:30 or 15:15)?')
+                        cron_time = (await conv.get_response()).text
+                        while not isValidTime(cron_time):
+                            await conv.send_message("Not the correct time format! Try again or /cancel")
+                            cron_time = (await conv.get_response()).text
+
+                        scheduler.add_job(send_update, 'cron', hour=int(cron_time.split(':')[0]), minute=int(cron_time.split(':')[1]), id=f'{chat_id}', args=[sender_id, spot['_id'], spot['_source']['name'], float(height), int(ndays), cron_time], replace_existing=True)
+                        await conv.send_message(f"Thanks! You will receive a daily message at {cron_time} if the maximum surf height at {spot['_source']['name']} hits {height} meters the coming {ndays} days.\n\nYou can always delete your registration with /delete or check your settings with /settings. Note that you can only register for one spot, new registrations will overwrite existing ones.")
+                        
                         break
                 elif type(event) is tl.patched.Message: 
                     message = event.text
@@ -116,33 +144,6 @@ async def register_spot(event):
                     done, pendind = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
                     event = done.pop().result()
             
-            spot = [i for i in results if i['_source']['name'] == selected.split('_')[1]][0]
-            await conv.send_message('Explore your spot')
-            await conv.send_message(spot['_source']['href'])
-            
-            await conv.send_message('Set minimum surf height in meters, eg. 0.9')
-            height = (await conv.get_response()).text
-            while not height.replace('.','',1).isdigit():
-                await conv.send_message("Not a number! Try again or /cancel")
-                height = (await conv.get_response()).text
-
-            await conv.send_message('For how many days would you like to retrieve the forecast (1-5)?')
-            ndays = (await conv.get_response()).text
-            while not (ndays.isnumeric()):
-                await conv.send_message("Please submit a number from 1 to 5! Try again or /cancel")
-                ndays = (await conv.get_response()).text
-            while not (int(ndays) in range(1,6)):
-                await conv.send_message("Please submit a number from 1 to 5! Try again or /cancel")
-                ndays = (await conv.get_response()).text
-                
-            await conv.send_message('Final question: at what time do you want to receive your daily update (24-hour notation, eg. 08:30 or 15:15)?')
-            cron_time = (await conv.get_response()).text
-            while not isValidTime(cron_time):
-                await conv.send_message("Not the correct time format! Try again or /cancel")
-                cron_time = (await conv.get_response()).text
-                
-            scheduler.add_job(send_update, 'cron', hour=int(cron_time.split(':')[0]), minute=int(cron_time.split(':')[1]), id=f'{chat_id}', args=[sender_id, spot['_id'], spot['_source']['name'], float(height), int(ndays), cron_time], replace_existing=True)
-            await conv.send_message(f"Thanks! You will receive a daily message at {cron_time} if the maximum surf height at {spot['_source']['name']} hits {height} meters the coming {ndays} days.\n\nYou can always delete your registration with /delete or check your settings with /settings. Note that you can only register for one spot, new registrations will overwrite existing ones.")
     except asyncio.TimeoutError:
         await event.respond('Registration timed out.')
     except asyncio.CancelledError:
