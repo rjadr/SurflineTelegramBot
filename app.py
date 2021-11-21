@@ -116,10 +116,7 @@ async def register_spot(event):
 
                         await conv.send_message('For how many days would you like to retrieve the forecast (1-5)?')
                         ndays = (await conv.get_response()).text
-                        while not (ndays.isnumeric()):
-                            await conv.send_message("Please submit a number from 1 to 5! Try again or /cancel")
-                            ndays = (await conv.get_response()).text
-                        while not (int(ndays) in range(1,6)):
+                        while not (ndays.isnumeric()) or not (int(ndays) in range(1,6)):
                             await conv.send_message("Please submit a number from 1 to 5! Try again or /cancel")
                             ndays = (await conv.get_response()).text
 
